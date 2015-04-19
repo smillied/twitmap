@@ -12,14 +12,30 @@ var twit = new twitter({
   access_token_secret: 'jbulWtSuA27jIKb5JzskSAzRG2cqgAwZpr6zW40Jb0W37'
 });
 
+function containsCoordinates(boundingBox, coordinates) {
+  if(boundingBox.swlng <= coordinates[0] && 
+     boundingBox.nelng >= coordinates[0] &&
+     boundingBox.swlat <= coordinates[1] &&
+     boundingBox.nelat >= coordinates[1]) {
+    console.log("Coords inside bounding box");
+    return true;
+  }
+  console.log("Coords outside bounding box");
+  return false;
+}
+
+
 io.use(function(socket, next) {
-  var handshakeData = socket.request._query.locations;
+  var handshakeData = socket.request._query;
   console.log(handshakeData);
 
-  twit.stream('statuses/filter', {locations: handshakeData},  function(stream){
+  var param = {locations: handshakeData.swlng + ', ' + handshakeData.swlat + ', ' + handshakeData.nelng + ', ' + handshakeData.nelat};
+  console.log(param);
+
+  twit.stream('statuses/filter', param,  function(stream){
     stream.on('data', function(data) {
       console.log(data.text);
-      if(data.coordinates != null) {
+      if(data.coordinates != null && containsCoordinates(handshakeData, data.coordinates.coordinates)) {
         io.emit('tweet', {
           user: data.user.screen_name,
           text: data.text,

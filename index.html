@@ -38,11 +38,14 @@
         google.maps.event.addListener(drawingManager, 'rectanglecomplete', function(rectangle) {
           var ne = rectangle.getBounds().getNorthEast();
           var sw = rectangle.getBounds().getSouthWest();
-          var boundingBox = sw.lng() + ', ' + sw.lat() + ', ' + ne.lng() + ', ' + ne.lat();
+          var boundingBox = {swlng:sw.lng(),
+			     swlat:sw.lat(),
+			     nelng:ne.lng(),
+			     nelat:ne.lat()};
           console.log(boundingBox);          
 
 	  var param = {};
-          param['query'] = 'locations=' + boundingBox;
+          param['query'] = boundingBox;
           var socket = io.connect('http://localhost:3000/', param);
           jQuery(function ($) {
             var tweetList = $('ul.tweets');
