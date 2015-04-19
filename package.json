@@ -1,0 +1,10 @@
+{
+  "name":"twitmap",
+  "version":"0.0.1",
+  "private":"true",
+  "dependencies":{
+    "express":"latest",
+    "twitter":"latest",
+    "socket.io":"latest"
+  }
+}

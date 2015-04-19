@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <title>Twit Map</title>
+    <style>
+      html, body, #map-canvas {
+        height: 80%;
+        margin: 10px;
+        padding: 10px
+      }
+    </style>
+    <script src="https://maps.googleapis.com/maps/api/js?v=3.exp&signed_in=true&libraries=drawing,visualization&sensor=true_or_false"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      function initialize() {
+        
+        var mapOptions = {
+          center: new google.maps.LatLng(-31.9522, 115.8589),
+          zoom: 8
+        };
+
+        var map = new google.maps.Map(document.getElementById('map-canvas'), mapOptions);
+
+        var drawingManager = new google.maps.drawing.DrawingManager({
+          drawingMode: google.maps.drawing.OverlayType.MARKER,
+          drawingControl: true,
+          drawingControlOptions: {
+            position: google.maps.ControlPosition.TOP_CENTER,
+            drawingModes: [
+              google.maps.drawing.OverlayType.RECTANGLE
+            ]
+          }
+        });
+
+        google.maps.event.addListener(drawingManager, 'rectanglecomplete', function(rectangle) {
+          var ne = rectangle.getBounds().getNorthEast();
+          var sw = rectangle.getBounds().getSouthWest();
+          var boundingBox = sw.lng() + ', ' + sw.lat() + ', ' + ne.lng() + ', ' + ne.lat();
+          console.log(boundingBox);          
+
+	  var param = {};
+          param['query'] = 'locations=' + boundingBox;
+          var socket = io.connect('http://localhost:3000/', param);
+          jQuery(function ($) {
+            var tweetList = $('ul.tweets');
+            socket.on('tweet', function (data) {
+	      var latlng = new google.maps.LatLng(data.lat, data.lng);
+	      heatmapData.push(latlng);
+
+var marker = new google.maps.Marker({
+    position: latlng,
+    title: data.user
+});
+
+// To add the marker to the map, call setMap();
+marker.setMap(map);
+
+              tweetList.prepend('<li>' + data.user + ': ' + data.text + ': ' + data.lng + ',' + data.lat + '</li>');
+            });
+          });
+        });
+
+        drawingManager.setMap(map);
+
+        var heatmapData = [];
+        var heatmap = new google.maps.visualization.HeatmapLayer({
+          data: heatmapData
+        });
+        heatmap.setMap(map);
+
+      }
+
+      google.maps.event.addDomListener(window, 'load', initialize);
+
+    </script>
+  </head>
+  <body>
+    <h1>Twit Map</h1>
+    <div id="map-canvas"></div>    
+    <ul class="tweets"></ul>
+  </body>
+</html>
