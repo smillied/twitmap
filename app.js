@@ -12,30 +12,23 @@ var twit = new twitter({
   access_token_secret: 'jbulWtSuA27jIKb5JzskSAzRG2cqgAwZpr6zW40Jb0W37'
 });
 
-function containsCoordinates(boundingBox, coordinates) {
-  if(boundingBox.swlng <= coordinates[0] && 
-     boundingBox.nelng >= coordinates[0] &&
-     boundingBox.swlat <= coordinates[1] &&
-     boundingBox.nelat >= coordinates[1]) {
-    console.log("Coords inside bounding box");
-    return true;
-  }
-  console.log("Coords outside bounding box");
-  return false;
-}
-
-
 io.use(function(socket, next) {
-  var handshakeData = socket.request._query;
-  console.log(handshakeData);
+  //Get bounding box from browser
+  var boundingBox = socket.request._query;
 
-  var param = {locations: handshakeData.swlng + ', ' + handshakeData.swlat + ', ' + handshakeData.nelng + ', ' + handshakeData.nelat};
-  console.log(param);
+  //Craft locations param from bvounding box
+  var param = {locations: boundingBox.swlng + ', ' + boundingBox.swlat + ', ' + boundingBox.nelng + ', ' + boundingBox.nelat};
 
   twit.stream('statuses/filter', param,  function(stream){
     stream.on('data', function(data) {
       console.log(data.text);
-      if(data.coordinates != null && containsCoordinates(handshakeData, data.coordinates.coordinates)) {
+
+      //Turns out the API will stream tweets that,
+      // a) have no coordinates
+      // b) have coordinates outside the bounding box
+      if(data.coordinates != null && containsCoordinates(boundingBox, data.coordinates.coordinates)) {
+        
+        //Emit tweet data back to browser
         io.emit('tweet', {
           user: data.user.screen_name,
           text: data.text,
@@ -54,6 +47,19 @@ io.use(function(socket, next) {
   next();
 });
 
+//Load index.html
 app.get('/', function (req, res) {
   res.sendFile(__dirname + '/index.html');
 });
+
+function containsCoordinates(boundingBox, coordinates) {
+  if(boundingBox.swlng <= coordinates[0] && 
+     boundingBox.nelng >= coordinates[0] &&
+     boundingBox.swlat <= coordinates[1] &&
+     boundingBox.nelat >= coordinates[1]) {
+    console.log("Coords inside bounding box");
+    return true;
+  }
+  console.log("Coords outside bounding box");
+  return false;
+}
